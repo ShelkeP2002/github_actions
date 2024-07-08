@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main  # Change to your default branch if different
+  pull_request:
+    branches:
+      - main  # Change to your default branch if different
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            wget \
+            xvfb \
+            zip \
+            ca-certificates \
+            libnss3-dev \
+            libasound2 \
+            libxss1 \
+            libappindicator3-1 \
+            libindicator7 \
+            gconf-service \
+            libgconf-2-4 \
+            libpango1.0-0 \
+            xdg-utils \
+            fonts-liberation \
+            wmctrl
+
+      - name: Install Chrome
+        run: |
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google.list
+          sudo apt-get update
+          sudo apt-get -y install google-chrome-stable
+
+      - name: Install Python dependencies
+        run: |
+          pip install selenium==4.15.2 \
+                      robotframework==6.1.1 \
+                      robotframework-seleniumlibrary==6.2.0 \
+                      robotframework-retryfailed==0.2.0 \
+                      robotframework-pabot==2.16.0 \
+                      openpyxl==3.1.2 \
+                      allure-robotframework==2.13.2 \
+                      webdrivermanager \
+                      pandas
+
+      - name: Run Robot Framework tests
+        env:
+          ROBOT_SELENIUM_ARGUMENTS: "--headless,--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-size=1920x1080"
+        run: |
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' robot Web/RR/TestCases/Login/login_test.robot
